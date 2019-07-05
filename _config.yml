@@ -2,9 +2,9 @@
 title: ZY Blog
 SEOTitle: 似寒的博客 | BY Blog
 header-img: img/post-bg-desk.jpg
-email: qiubaiying@gmail.com
+email: zhaoyan_zain@163.com
 description: "Every failure is leading towards success."
-keyword: "ZY, ZY Blog, 似寒的博客, zhaoyan, 赵言, iOS, Apple, iPhone"
+keyword: "ZY, ZY 博客, 似寒的博客, zhaoyan, 赵言, iOS, Apple, iPhone"
 url: "http://likecode.github.io"          # your host, for absolute URL
 baseurl: ""      # for example, '/blog' if your blog hosted on 'host/blog'
 github_repo: "https://github.com/likecode/likecode.github.io.git" # you code repository
