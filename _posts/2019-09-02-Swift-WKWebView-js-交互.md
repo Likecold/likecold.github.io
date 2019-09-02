@@ -26,7 +26,7 @@ tags:
      config.userContentController = userContent;
      self.wkWebview = WKWebView.init(frame:CGRect.init(x: 0, y: 0, width: SCREENWIDTH, height: SCREENHEIGHT>=812 ? SCREENHEIGHT-88 : SCREENHEIGHT-64), configuration: config);
      self.view.addSubview(self.wkWebview!);
-     //设置代理遵循代理并实现代理
+     //  设置代理遵循代理并实现代理
      self.wkWebview?.navigationDelegate = self;
      self.wkWebview?.uiDelegate = self;
      self.wkWebview?.load(request)
@@ -35,7 +35,8 @@ tags:
 
 ### 实现代理 收发消息
 
-    /*webview 加载完成 发送数据给js端*/
+
+    //  webview 加载完成 发送数据给js端
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         //  发送消息给web
         //  data 和 js端沟通数据格式 以字符串形式传递
