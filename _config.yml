@@ -1,6 +1,6 @@
 # Site settings
 title: ZY Blog
-SEOTitle: 似寒的博客 | BY Blog
+SEOTitle: 似寒的博客 | ZY Blog
 header-img: img/post-bg-desk.jpg
 email: zhaoyan_zain@163.com
 description: "Every failure is leading towards success."
@@ -12,7 +12,7 @@ github_repo: "https://github.com/likecode/likecode.github.io.git" # you code rep
 # Sidebar settings
 sidebar: true                           # whether or not using Sidebar.
 sidebar-about-description: "The longest way must have its close； the gloomiest night will wear on to a morning。!"
-sidebar-avatar: /img/about-BY-gentle.jpg      # use absolute URL, seeing it's used in both `/` and `/about/`
+sidebar-avatar: /img/about-ZY-gentle.jpg      # use absolute URL, seeing it's used in both `/` and `/about/`
 
 
 
@@ -103,7 +103,7 @@ friends: [
 #         href: "http://zhengwuyang.com"
 #     },
 #     {
-#         title: "简书·BY",
+#         title: "简书·ZY",
 #         href: "http://www.jianshu.com/u/e71990ada2fd"
 #     },
     {
