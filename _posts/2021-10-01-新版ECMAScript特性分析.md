@@ -1,7 +1,7 @@
 ---
 layout:     post
 title:      新版 ECMAScript 特性分析
-subtitle:   
+subtitle:   特性分析
 date:       2021-10-01
 author:     ZY
 header-img: img/home-bg-art.jpg
