@@ -732,4 +732,271 @@ r = ["I love", "coffe 1891"].flatMap(item => item.split(" "));
 console.log(r); //>>[ 'I', 'love', 'coffe', '1891' ]
 ```
 
+### 1.6 ES 2020 \(ES11\) 新特性
+
+{% hint style="info" %}
+因为太“新”，现在若想使用ES11新特性，则需要安装babel插件
+{% endhint %}
+
+```javascript
+plugins: [
+    "@babel/plugin-proposal-nullish-coalescing-operator",
+    "@babel/plugin-proposal-optional-chaining",
+    "@babel/plugin-proposal-class-properties",
+    "@babel/plugin-proposal-private-methods",
+    "@babel/plugin-syntax-bigint"
+]
+```
+
+| 新特性 | 中文说明 |
+| :--- | :--- |
+| Optional Chaining | 可选链操作符 |
+| Nullish coalescing Operator | 空位合并操作符 |
+| `String.prototype.matchAll` |  |
+| `import()` | import\(\)函数 |
+| `Promise.allSettled` |  |
+| Bigint |  |
+| globalThis | 全局this |
+
+#### Optional Chaining
+
+**可选链操作符** `?` 可让我们在查询具有多个层级的对象时，不再需要进行冗余的各种前置校验。
+
+以前要读取一个对象的属性值，需要写一些防御性的前置校验代码，比如：
+
+```javascript
+let second = obj && obj.first && obj.first.second;
+```
+
+在访问 obj.first.second 之前，要先确认 obj 和 obj.first 的值非 null\(且不是 undefined\)。有了可选链式操作符，则可以大量简化类似繁琐的前置校验操作，而且更安全：
+
+```javascript
+let second = obj?.first?.second;
+```
+
+如果 `obj` 或`obj.first`是`null`/`undefined`，表达式将会直接返回`undefined`。
+
+#### Nullish coalescing Operator\(空值处理\)
+
+以前对于如下的情况：
+
+```javascript
+let v = a || "some value";
+
+let z = a ? a : "some value";
+```
+
+如果 a 的值是 `0` 、 空字符串`''` 、`false`等可能有意义的值，但是在上面的表达式中被认为是假值，因此v 和 z 也会被赋值为 `some value`。也即：
+
+```javascript
+let a = 0; // 0、''、false可能是有意义的
+let v = a || "some value";
+console.log(v); //>> some value
+```
+
+为解决这种问题，诞生了`??` ，如果表达式在`??`的左侧值为`undefined`或`null`，就返回右侧默认的值。
+
+```javascript
+let a = 0; 
+let v = a ?? "some value";
+console.log(v); //>> 0
+
+let b = null; 
+let z = b ?? "some value";
+console.log(z); //>> some value
+```
+
+#### String.prototype.matchAll
+
+`matchAll()` 方法返回一个包含所有匹配正则表达式及分组捕获结果的迭代器（iterator）。 在 `matchAll` 出现之前，通过在循环中调用`Regexp.exec`来获取所有匹配项信息（`Regexp`需使用`/g`标志）：
+
+```javascript
+const regexp = RegExp('foo*','g');
+const str = 'coffe football, foosball';
+
+while ((matches = regexp.exec(str)) !== null) {
+  console.log(`找到 ${matches[0]}，下一轮循环从位置 ${regexp.lastIndex} 开始`);
+  //>> 找到 foo，下一轮循环从位置 9 开始
+  //>> 找到 foo，下一轮循环从位置 19 开始
+}
+```
+
+如果使用`matchAll` ，就可以不必使用`while`循环加`exec`方式（且正则表达式需使用`/g`标志）。使用`matchAll` 会得到一个迭代器的返回值，配合 `for...of`，`array spread`，`Array.from()` 可以更方便实现功能。
+
+```javascript
+const regexp = RegExp('foo*','g'); 
+const str = 'coffe football, foosball';
+let matches = str.matchAll(regexp);
+
+for (const match of matches) {
+  console.log(match);
+}
+//>> [ "foo" ]
+//>> [ "foo" ]
+
+//注意：
+//matches的迭代器在for..of之后已经被消耗掉了，
+//需要再次调用matchAll创建一个新的迭代器
+matches = str.matchAll(regexp);
+
+let arr = Array.from(matches, m => m[0]);
+console.log(arr);
+//>> [ "foo", "foo" ]
+```
+
+#### import\(\)函数
+
+这个特性为JavaScript添加了一个类函数（function-like）的`import()`功能，以便可以像函数传参那样传入参数实现**动态**（没错，`import`是静态引用的）引用模块（module）。下面有个单页应用简单示例，演示了用`import()`开启懒加载。
+
+```markup
+<!DOCTYPE html>
+<nav>
+  <a href="books.html" data-entry-module="books">书籍</a>
+  <a href="movies.html" data-entry-module="movies">电影</a>
+  <a href="video-games.html" data-entry-module="video-games">电视游戏</a>
+</nav>
+
+<main>内容将会加载到这里！</main>
+
+<script>
+  const main = document.querySelector("main");
+  for (const link of document.querySelectorAll("nav > a")) {
+    link.addEventListener("click", e => {
+      e.preventDefault();
+
+      import(`./section-modules/${link.dataset.entryModule}.js`)//动态引用
+        .then(module => {//加载模块成功以后，该模块会当作then方法的参数
+          module.loadPageInto(main);
+        })
+        .catch(err => {//捕捉异常
+          main.textContent = err.message;
+        });
+    });
+  }
+</script>
+```
+
+请注意`import()`和`import`的区别：
+
+* import\(\) 可以用在script脚本区，不止是模块内；
+* 如果在模块内使用import\(\)，它可以在任何地方任何级别执行，而不是被提升到顶级（优先执行）；
+* import\(\) 是运行时执行，也即什么时候运行到这句，就会加载参数指定的模块；参数也可以是动态可变的，不止是静态参数；
+* import\(\) 不建立可静态分析的依赖关系（静态分析的情况下可以做很多优化），但是，在一些比较简单的情况下，比如`import（“/foo.js”）`中，实现仍然可以执行静态分析优化。
+
+如果模块采用`default`的形式对外暴露接口，则可用`default`属性直接获得。
+
+```javascript
+import('./module.js')
+.then(module => {
+  console.log(module.default);//直接通过default属性获得模块暴露的接口
+});
+```
+
+#### Promise.allSettled
+
+为什么要有`Promise.allSettled()`？
+
+举例说明，比如各位用户在页面上面同时填了3个独立的表单，这三个表单分三个接口提交到后端，三个接口独立，没有顺序依赖，这个时候我们需要等到请求全部完成后给与用户提示表单提交的情况。
+
+在多个`promise`同时进行时咱们很快会想到使用`Promise.all`来进行包装，但是由于`Promise.all`的一票否决的特性，三个提交中若前面任意一个提交失败，则后面的表单也不会进行提交了，这就与咱们需求不符合。
+
+`Promise.allSettled`跟`Promise.all`类似，其参数接受一个`Promise`的数组，返回一个新的`Promise`，唯一的不同在于，其没有一票否决的特性，也就是说当`Promise`全部处理完成后我们可以拿到每个`Promise`的状态，而不管其是否处理成功。
+
+```javascript
+Promise.allSettled([Promise.resolve("coffe"), Promise.reject("1891")]).then(
+  arr => {
+    console.log(arr); //>> [ { status: "fulfilled", value: "coffe"},
+                      //>>   { status: "rejected", reason: "1891" } ]
+  }
+);
+```
+
+#### Bigint
+
+JavasSript 在数学计算领域很糟糕的原因之一是它只能安全的表示`-(2^53-1)`至 `2^53-1` 范的值，即`Number.MIN_SAFE_INTEGER` 至`Number.MAX_SAFE_INTEGER`，超出这个范围的整数计算或者表示会丢失精度。
+
+```javascript
+var num = Number.MAX_SAFE_INTEGER;  // >> 9007199254740991
+
+num = num + 1; // >> 9007199254740992
+
+// 再次加 +1 后无法正常运算
+num = num + 1; // >> 9007199254740992
+
+// 两个不同的值，却返回了true
+9007199254740992 === 9007199254740993  // >> true
+```
+
+于是 BigInt 诞生了，**它是JavaScript的第7个原始类型**，可安全地进行大数整型计算。 你可以在BigInt上使用与普通数字相同的运算符，例如 +, -, /, \*, %等等。
+
+创建 BigInt 类型的值也非常简单，只需要在数字后面加上 `n` 即可。例如，123 变为 123n。也可以使用全局方法 BigInt\(value\) 转化，入参 value 为数字或数字字符串。
+
+```javascript
+const aNumber = 1891;
+const aBigInt = BigInt(aNumber);
+aBigInt === 1891n // true
+typeof aBigInt === 'bigint' // true
+typeof 1891 // "number"
+typeof 1891n // "bigint"
+```
+
+只要在数字末尾加上 n，就可以正确计算大数：
+
+```javascript
+1234567890123456789n * 123n;
+// -> 151851850485185185047n
+```
+
+最后要注意，不能将 BigInt与Number混合使用。比较Number和 BigInt是可以的，但是不能把它们相加。
+
+```javascript
+1n < 2 // true
+
+1n + 2 // Uncaught TypeError: Cannot mix BigInt and other types, use explicit conversions
+```
+
+#### globalThis
+
+globalThis 是一个全新的标准方法用来获取全局 this 。之前开发者会通过如下的一些方法获取：
+
+* 全局变量 window：是一个经典的获取全局对象的方法。但是它在 Node.js 和 Web Workers 中并不能使用
+* 全局变量 self：通常只在 Web Workers 和浏览器中生效。但是它不支持 Node.js。一些人会通过判断 self 是否存在识别代码是否运行在 Web Workers 和浏览器中
+* 全局变量 global：只在 Node.js 中生效
+
+过去获取全局对象，可通过一个全局函数：
+
+```javascript
+// ES10之前的解决方案
+const getGlobal = function(){
+  if(typeof self !== 'undefined') return self
+  if(typeof window !== 'undefined') return window
+  if(typeof global !== 'undefined') return global
+  throw new Error('unable to locate global object')
+}
+
+// ES10内置
+globalThis.Array(0,1,2) // [0,1,2]
+
+// 定义一个全局对象v = { value:true } ,ES10用如下方式定义
+globalThis.v = { value:true }
+```
+
+而 **globalThis 目的就是提供一种标准化方式访问全局对象**，有了 globalThis 后，你可以在任意上下文，任意时刻都能获取到全局对象。如果您在浏览器上，globalThis将为window，如果您在Node上，globalThis则将为global。因此，不再需要考虑不同的环境问题。
+
+```javascript
+// worker
+globalThis === self
+// node
+globalThis === global
+// browser
+globalThis === window
+```
+
+### 1.7 本篇结语
+
+很显然ECMAScript接下来会持续不断地更新，按TC39的计划是每年都会发一个新版本。虽然节奏很快，但是我们完全没必要担心跟不上节奏。除了ES6这个史无前例的版本带来了超大量的新特性外，之后每年发的版本都仅仅带有少量的增量更新，你只需要花45分钟就能搞明白这一年更新的特性。保持一颗好奇的心，你会不断进步，变得更强！
+
+### 参考文献
+
+[ES2020新特性](https://juejin.im/post/6844904080955932679#heading-6)
 
