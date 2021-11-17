@@ -357,4 +357,379 @@ Atomics 对象提供了一组静态方法用来对 SharedArrayBuffer 对象进�
 | Atomics.wake\(\) | 唤醒等待队列中正在数组指定位置的元素上等待的线程。返回值为成功唤醒的线程数量。 |
 | Atomics.isLockFree\(size\) | 可以用来检测当前系统是否支持硬件级的原子操作。对于指定大小的数组，如果当前系统支持硬件级的原子操作，则返回 true；否则就意味着对于该数组，Atomics 对象中的各原子操作都只能用锁来实现。此静态方法面向的是技术专家。 |
 
+### 1.4 ES 9 新特性
+
+| 新特性 | 中文说明 |
+| :--- | :--- |
+| Asynchronous Iteration | 异步迭代器 |
+| `Promise.prototype.finally` |  |
+| Lifting template literal restriction | 重新修订了字面量的转义 |
+| Rest/Spread Properties | Rest/Spread 属性 |
+| `s` \(dotAll\) flag for regular expressions | 正则表达式dotAll模式 |
+| RegExp named capture groups | 正则表达式命名捕获组 |
+| RegExp Lookbehind Assertions | 正则表达式反向断言 |
+| RegExp Unicode Property Escapes | 正则表达式 Unicode 转义 |
+
+#### 异步迭代器
+
+在`async`/`await`的某些时刻，你可能尝试在同步循环中调用异步函数。例如：
+
+```javascript
+async function func(array) {
+  for (let i of array) {
+    await someFunc(i);
+  }
+}
+```
+
+这段代码不会达到预期目的，下面这段同样也不会：
+
+```javascript
+async function func(array) {
+  array.forEach(async i => {
+    await someFunc(i);
+  });
+}
+```
+
+上面这段代码中，循环本身依旧保持同步，并在内部异步函数之前全部调用完成。
+
+引入异步迭代器后，就像常规迭代器，除了`next()`方法返回一个Promise。因此`await`可以和`for...of`循环一起使用，以串行的方式运行异步操作。
+
+```javascript
+async function func(array) {
+  for await (let i of array) {//异步迭代
+    someFunc(i);
+  }
+}
+```
+
+更多详细论述见“壹.2.12”。
+
+#### Promise.prototype.finally
+
+一个Promise调用链要么成功到达最后一个`.then()`，要么失败触发`.catch()`。在某些情况下，你想要在无论Promise运行成功还是失败，运行相同的代码，例如清除数组、删除对话、关闭数据库连接等，`.finally()`允许实现这样的目的。
+
+```javascript
+function func() {
+  promiseFunc() //返回一个Promise对象
+    .then(() => {})
+    .then(() => {})
+    .catch(err => {
+      console.log(err);
+    })
+    .finally(() => {
+      //无论promiseFunc()运行成功还是失败，这里的代码会被调用到
+    });
+}
+```
+
+更多详细论述见“壹.2.12”。
+
+#### 重新修订了字面量的转义
+
+ES9 之前，`\u`表示 unicode 转义，`\x`表示十六进制转义，`\`后跟一个数字表示八进制转义，这使得创建特定的字符串变得不可能，例如Windows文件路径`C:\uuu\xxx\111`。
+
+要取消转义序列的语法限制，可在模板字符串之前使用标记函数`String.raw`。
+
+```javascript
+let s = `\u{54}` //会转义成unicode "T"
+console.log(s);//>> T
+
+let str = String.raw`\u{54}`; //不会被转义
+console.log(str);//>> \u{54}
+```
+
+#### Rest / Spread
+
+这个就是我们通常所说的三个点`...`，这项特性在ES6中已经引入，但是ES6中的作用对象仅限于数组。在ES9中，为对象提供了像数组一样的rest参数和扩展运算符：
+
+```javascript
+const obj = {
+  a: 1,
+  b: 2,
+  c: 3
+};
+const { a, ...param } = obj; //这里...是rest
+console.log(a); //>> 1
+console.log(param); //>> {b: 2, c: 3}
+
+function foo({ a, ...param }) {//这里...还是rest
+  console.log(a); //>> 1
+  console.log(param); //>> {b: 2, c: 3}
+}
+
+const param = { b: 2, c: 3 };
+foo({ a: 1, ...param });  //此处...为spread
+```
+
+#### 正则表达式dotAll模式
+
+正则表达式中点`.`匹配除回车外的任何单字符，标记`s`改变这种行为，允许匹配回车换行。
+
+```javascript
+/hello.world/.test('hello\nworld');  // false
+/hello.world/s.test('hello\nworld'); // true
+console.log(/hello.world/s.test(`hello
+world`))   //>> true
+```
+
+#### 正则表达式命名捕获组
+
+Javascript正则表达式中使用`exec()`匹配后，能够返回一个包含匹配字符串的类数组对象。
+
+```javascript
+const reDate = /(\d{4})-(\d{2})-(\d{2})/,
+  match = reDate.exec("2018-08-06");
+console.log(match);//>> [2018-08-06, 2018, 08, 06]
+
+//这样就可以直接用索引来获取年月日：
+let year = match[1]; //>> 2018
+let month = match[2]; //>> 08
+let day = match[3]; //>> 06
+```
+
+返回数组的第0项为与正则表达式相匹配的文本，第 1 项是与 `reDate` 的第 1 个分组`\d{4}`相匹配的文本（如果有的话），第 2 项是与 `reDate` 的第 2 个分组`\d{2}`相匹配的文本（如果有的话），以此类推。正则表达式的组以`()`包起来。
+
+上面的案例，若是日期格式变成`月日年`，那么改变正则表达式的结构后，还有可能会改变变量的赋值部分的代码。如下示例：
+
+```javascript
+const reDate = /(\d{2})-(\d{2})-(\d{4})/,//表达式结构变化了
+  match = reDate.exec("08-06-2018");
+console.log(match);//>> [08-06-2018, 08, 06, 2018]
+
+//此时年月日的赋值代码也要改了,改的地方真多啊！怎么办？
+let year = match[3]; //>> 2018
+let month = match[1]; //>> 08
+let day = match[2]; //>> 06
+```
+
+可以发现上面的写法改的地方太多了，有没有办法少改点代码省省事呢？有！ ES9 允许使用符号`?<name>`来命名**捕获组**（也即“匹配到的组”），示例如下：
+
+```javascript
+const reDate = /(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})/,
+  match = reDate.exec("2018-08-06");
+console.log(match);
+//>> [2018-08-06, 08, 06, 2018, groups: {day: 06, month: 08, year: 2018}]
+
+//此时用groups对象来获取年月日，无论正则表达式怎么变换，这下面三行不用改了，省事！
+let year = match.groups.year; //>> 2018
+let month = match.groups.month; //>> 08
+let day = match.groups.day; //>> 06
+```
+
+命名捕获组的写法相当于是把每个捕获组都定义了一个名字，然后存储到返回值的`groups`属性中。
+
+#### 正则表达式后行断言
+
+先看看正则表达式**先行断言**示例：
+
+```javascript
+const re1 = /\D(\d+)/,
+    re2 = /\D(?=\d+)/,//"?="是正向先行断言
+    match1 = re1.exec("$123.45"),
+    match2 = re2.exec("$123.45");
+console.log(match1[0]); //>> $123
+console.log(match2[0]); //>> $
+```
+
+> **\(?=pattern\)** 零宽正向先行断言\(zero-width positive lookahead assertion\)  
+> 代表字符串中的一个位置，**紧接该位置之后**的字符序列**能够匹配**pattern；
+>
+> \(**?!pattern\)** 零宽负向先行断言\(zero-width negative lookahead assertion\)  
+> 代表字符串中的一个位置，**紧接该位置之后**的字符序列**不能匹配**pattern；
+>
+> **\(?&lt;=pattern\)** 零宽正向后行断言\(zero-width positive lookbehind assertion\)  
+> 代表字符串中的一个位置，**紧接该位置之前**的字符序列**能够匹配**pattern；
+>
+> **\(?&lt;!pattern\)** 零宽负向后行断言\(zero-width negative lookbehind assertion\)  
+> 代表字符串中的一个位置，**紧接该位置之前**的字符序列**不能匹配**pattern。
+
+在ES9中，可以允许使用`?<=`进行**正向后行断言**，可以获取货币的价格而忽略货币符号。
+
+```javascript
+const re= /(?<=\D)[\d\.]+/,
+    match = re.exec("$123.45");
+console.log(match[0]); //>> 123.45
+```
+
+上面的正向后行断言，也就是说`\D`这个条件必须满足，但`\D`匹配的字符不会作为结果输出（因为**先行/后行断言**其实只是匹配了一个位置）。如果是下面这样：
+
+```javascript
+const re= /(?<=\D)[\d\.]+/,
+    match1 = re.exec("123.45"),
+    match2 = re.exec("12345");
+console.log(match1 && match1[0]); //>> 45
+console.log(match2 && match1[0]); //>> null
+```
+
+可以看到`match1`匹配到的是`45`,这是由于在`.`前面没有任何符合`\D`的匹配内容，它会一直找到符合`\D`的内容，也就是`.`然后返回后面的内容。而`match2`若是没有满足前面肯定反向断言的条件的话，则结果返回`null`。
+
+#### 正则表达式 Unicode 转义
+
+ES9 之前，在正则表达式中本地访问 Unicode 字符属性是不被允许的。ES9 添加了 Unicode 属性转义，形式为`\p{...}`和`\P{...}`，在正则表达式中使用标记 `u` \(unicode\) 设置，在`\p`的`{...}`内，可用键值对的方式设置需要匹配的属性而非具体内容。
+
+```javascript
+const regex = /\p{Script=Greek}/u;//Greek为希腊语的意思
+console.log(regex.test('a')); //>> flase
+console.log(regex.test('Σ')); //>> true
+```
+
+### 1.5 ES 10 新特性
+
+| 新特性 | 中文说明 |
+| :--- | :--- |
+| Optional `catch` binding | 可选的 catch 变量绑定 |
+| JSON superset | JSON超集 |
+| `Symbol.prototype.description` | Symbol 对象的 description 属性 |
+| `Function.prototype.toString` revision | 修订`Function.prototype.toString` |
+| `Object.fromEntries` |  |
+| Well-formed `JSON.stringify` | 更加友好的JSON.stringify |
+| `String.prototype.{trimStart,trimEnd}` |  |
+| `Array.prototype.{flat,flatMap}` |  |
+
+#### 可选的 catch 变量绑定
+
+在 ES10 之前，我们必须通过语法为 catch 子句绑定异常变量，无论是否有必要。很多时候 catch 块是多余的，而 ES10 使我们能够简单的把变量省略掉。
+
+```javascript
+//之前是
+try {} catch(e) {}
+
+//ES10之后可以写成，
+try {} catch {}//省掉了变量e
+```
+
+#### JSON超集
+
+什么是 JSON 超集？简单来说就是 JSON 是 ECMAScript 的子集，也就是说让 ECMAScript 兼容 JSON 的内容所支持的全部文本。
+
+ECMAScript 在标准 [JSON.parse](https://tc39.es/ecma262/#sec-json.parse) 部分阐明了 JSON 确为其一个子集，但由于 JSON 的内容可以正常包含 `U+2028` 行分隔符与 `U+2029` 段落分隔符，而 ECMAScript 却不行，所以，该草案旨在解决这一问题。在这之前，如果你使用 `JSON.parse()` 执行带如上特殊字符的字符串时，只会收到 `SyntaxError` 的错误提示。该草案同样是向后兼容的，其对用户唯一的影响是保持原样，即在暂不支持特殊字符解析的运行环境中保持报错 `SyntaxError` 。
+
+#### Symbol 对象的 description 属性
+
+ES10 中为 Symbol 对象添加了只读属性 `description` ，该对象返回包含 Symbol 描述的字符串。在创建Symbol时向其添加`description` \(描述\)，能够直接访问`description` ，对调试是很有用的。
+
+```javascript
+let sym = Symbol('foo');//添加的描述内容为“foo”
+console.log(sym.description);//>> foo
+
+sym = Symbol();
+console.log(sym.description);//>> undefined
+
+//和 Symbol() 不同的是，用 Symbol.for() 方法创建的的 symbol 会被放入一个全局 
+//symbol 注册表中。Symbol.for() 并不是每次都会创建一个新的 symbol，它会首先检
+//查给定的 key 是否已经在注册表中了。假如是，则会直接返回上次存储的那个。否则，它
+//会再新建一个。
+sym = Symbol.for('bar');
+console.log(sym.description);//>> bar
+```
+
+#### 修订Function.prototype.toString
+
+函数原型上的方法`toString()`现在返回精确字符，包括空格和注释。
+
+```javascript
+function /* comment */ foo /* another comment */() {}
+
+//ES10之前不会打印注释部分
+console.log(foo.toString()); //>> function foo(){}
+
+//ES10里，会把注释一同打印
+console.log(foo.toString()); //>> function /* comment */ foo /* another comment */ (){}
+
+//注意：
+//箭头函数是个例外
+const bar /* comment */ = /* another comment */ () => {};
+console.log(bar.toString()); //>> () => {}
+```
+
+#### Object.fromEntries
+
+在 JavaScript 操作中，数据在各种数据结构之间的转换都是很容易的，比如 Map 到数组、Map 到 Set、对象到 Map 等等。
+
+```javascript
+let map = new Map().set('foo', true).set('bar', false);
+let arr = Array.from(map);
+let set = new Set(map.values());
+
+let obj = { foo: true, bar: false };
+//下一句 Object.entries() 方法返回给定对象 obj 自身可枚举属性的键值对数组,
+//形如：[["foo",true],["bar",false]]
+let newMap = new Map(Object.entries(obj));
+```
+
+但是如果我们需要将一个键值对列表转换为对象，就要写点费劲的代码了。
+
+```javascript
+let map = new Map().set("foo", true).set("bar", false);
+let obj = Array.from(map).reduce((acc, [key, val]) => {
+  return Object.assign(acc, {
+    [key]: val
+  });
+}, {});
+```
+
+该特性的目的在于为对象添加一个新的静态方法 `Object.fromEntries`，用于将符合键值对的列表（例如 Map、数组等）转换为一个对象。上一块的代码中的转换逻辑，现在我们只需要一行代码即可搞定。
+
+```javascript
+const map = new Map().set("foo", true).set("bar", false);
+let obj = Object.fromEntries(map);
+```
+
+#### 更加友好的 JSON.stringify
+
+ES10 之前，当你使用 `JSON.stringify()` 处理无法用 UTF-8 编码表示的字符时（U+D800 至 U+DFFF），返回的结果会是一个乱码 Unicode 字符“�”。该特性提出用`JSON.stringify()`来安全的表示这些不正常的UTF-8字符。
+
+```javascript
+let r;
+r = JSON.stringify("❤"); //正常的UTF-8字符原样输出
+console.log(r); //>> "❤"
+
+r = JSON.stringify('\u2764'); //正常的UTF-8字符编码，输出解码之后的模样
+console.log(r); //>> "❤"
+
+r = JSON.stringify("\uDF06\uD834"); //不正常的UTF-8字符编码，则以unicode形式输出
+console.log(r); //>> "\udf06\ud834"
+
+r = JSON.stringify("\uDEAD"); //不正常的UTF-8字符编码，则以unicode形式输出
+console.log(r); //>> "\udead"
+```
+
+#### String.prototype.{trimStart,trimEnd}
+
+新增了String的`trimStart()`方法和`trimEnd()`方法，这两个方法很好理解，分别去除字符串首、尾的空白字符，就不举例占篇幅了。
+
+#### Array.prototype.{flat,flatMap}
+
+这个特性新创造了两个方法，其中：
+
+* `Array.prototype.flat` 数组的所有项会以指定的维度降维（扁平化），然后组成新数组返回；
+* `Array.prototype.flatMap` 首先会执行一次`map()`方法，然后再通过类似`flat()`方法**扁平化**数组。它等同于执行完 `map()` 后再执行一次 `flat()` 方法，所以当你执行 `map()` 返回的结果如果是个数组，然后又要将其扁平化时，这个方法会显得方便。
+
+来看几个例子解释一下，首先 `flat()` 方法支持多维数组的扁平化，其中`Infinity`可以将多维数组压扁成一维数组。
+
+```javascript
+let r;
+r = ["1", ["8", ["9", ["1"]]]].flat();//4维数组，默认降维1，变成3维数组
+console.log(r); //>> [ '1', '8', [ '9', ['1'] ] ]
+
+r = ["1", ["8", ["9", ["1"]]]].flat(2); //4维数组，降维2，变成2维数组
+console.log(r); //>> [ '1', '8', '9', ['1'] ]
+
+r = ["1", ["8", ["9", ["1"]]]].flat(Infinity);//4维数组，最多变成1维数组
+console.log(r); //>> [ '1', '8', '9', '1' ]
+```
+
+接着来看看`flatMap()`
+
+```javascript
+let r;
+r = ["I love", "coffe 1891"].map(item => item.split(" "));
+console.log(r); //>> [ [ 'I', 'love' ], [ 'coffe', '1891' ] ]
+
+r = ["I love", "coffe 1891"].flatMap(item => item.split(" "));
+console.log(r); //>>[ 'I', 'love', 'coffe', '1891' ]
+```
+
 
