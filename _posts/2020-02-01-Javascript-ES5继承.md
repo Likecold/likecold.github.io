@@ -75,7 +75,7 @@ Man.prototype = Object.create(People.prototype, {
 })
 ```
 
-# inherits函数：
+# inherits函数
 
 ```javascript
 function inherits(ctor, superCtor) {
